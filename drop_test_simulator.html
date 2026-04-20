@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>附属書[5-2] 落下試験シミュレーター</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep:    #0b1624;
+    --bg-mid:     #111e30;
+    --bg-card:    rgba(21, 37, 56, 0.85);
+    --bg-card2:   rgba(17, 30, 48, 0.9);
+    --accent:     #4fc3f7;
+    --accent2:    #38b2ac;
+    --accent-glow: rgba(79,195,247,0.18);
+    --border:     rgba(79,195,247,0.18);
+    --border-hi:  rgba(79,195,247,0.45);
+    --text-pri:   #e8f4fd;
+    --text-sec:   #7fafc8;
+    --text-dim:   #3d6480;
+    --success:    #4ade80;
+    --warning:    #fbbf24;
+    --danger:     #f87171;
+    --mono:       'Share Tech Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text-pri);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* grid bg */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(79,195,247,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79,195,247,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .page-wrapper {
+    position: relative; z-index: 1;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+  }
+
+  /* ── header ── */
+  .page-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    animation: fadeDown 0.6s ease both;
+  }
+  .page-header .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    border: 1px solid var(--border-hi);
+    border-radius: 20px;
+    padding: 3px 14px;
+    margin-bottom: 14px;
+    background: var(--accent-glow);
+  }
+  .page-header h1 {
+    font-size: clamp(1.4rem, 4vw, 1.9rem);
+    font-weight: 500;
+    color: var(--text-pri);
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+  }
+  .page-header p {
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--text-sec);
+  }
+
+  /* ── card ── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    backdrop-filter: blur(12px);
+    animation: fadeUp 0.5s ease both;
+  }
+  .card:nth-child(1){ animation-delay:.05s }
+  .card:nth-child(2){ animation-delay:.1s }
+  .card:nth-child(3){ animation-delay:.15s }
+  .card:nth-child(4){ animation-delay:.2s }
+
+  .card-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 1.1rem;
+  }
+  .card-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--accent-glow);
+    border: 1px solid var(--border-hi);
+    border-radius: 6px;
+    padding: 2px 8px;
+    letter-spacing: 0.08em;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-sec);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── radio pills ── */
+  .pill-group {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .pill {
+    cursor: pointer;
+  }
+  .pill input { display: none; }
+  .pill span {
+    display: inline-block;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: transparent;
+    color: var(--text-sec);
+    transition: all 0.2s;
+    cursor: pointer;
+    user-select: none;
+  }
+  .pill:hover span { border-color: var(--accent); color: var(--accent); }
+  .pill input:checked + span {
+    background: linear-gradient(135deg, rgba(79,195,247,0.22), rgba(56,178,172,0.14));
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 10px rgba(79,195,247,0.2);
+  }
+
+  /* ── input fields ── */
+  .field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label {
+    font-size: 11px;
+    color: var(--text-sec);
+    letter-spacing: 0.06em;
+    font-weight: 400;
+  }
+  .field-wrap {
+    position: relative;
+    display: flex; align-items: center;
+  }
+  .field-wrap input {
+    width: 100%;
+    background: rgba(11,22,36,0.7);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 46px 9px 12px;
+    font-size: 15px;
+    font-family: var(--mono);
+    color: var(--text-pri);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .field-wrap input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,195,247,0.12);
+  }
+  .field-wrap input::placeholder { color: var(--text-dim); font-size: 13px; font-family: 'Noto Sans JP',sans-serif; }
+  .field-unit {
+    position: absolute; right: 10px;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--text-dim);
+    pointer-events: none;
+  }
+
+  /* ── notice boxes ── */
+  .notice {
+    display: none;
+    margin-top: 10px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .notice.info  { background: rgba(79,195,247,0.1);  border-left: 3px solid var(--accent);  color: #90d8f5; }
+  .notice.warn  { background: rgba(251,191,36,0.1);  border-left: 3px solid var(--warning); color: #fcd34d; }
+  .notice.show  { display: block; }
+
+  /* ── calculate button ── */
+  .btn-calc {
+    width: 100%;
+    padding: 13px;
+    font-size: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--bg-deep);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(79,195,247,0.25);
+    transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+    margin-top: 0.25rem;
+  }
+  .btn-calc:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 28px rgba(79,195,247,0.38);
+  }
+  .btn-calc:active { transform: scale(0.98); }
+
+  /* ── result ── */
+  #result-area { display: none; }
+  #result-area.show { display: block; animation: fadeUp 0.4s ease both; }
+
+  .result-card {
+    background: var(--bg-card2);
+    border: 1px solid var(--border-hi);
+    border-radius: 14px;
+    padding: 1.75rem;
+    margin-top: 1.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .result-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), transparent);
+  }
+  .result-label {
+    font-size: 11px;
+    color: var(--text-sec);
+    letter-spacing: 0.12em;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  .result-value {
+    font-family: var(--mono);
+    font-size: 3.2rem;
+    font-weight: 400;
+    color: var(--accent);
+    line-height: 1;
+    text-shadow: 0 0 24px rgba(79,195,247,0.4);
+    margin-bottom: 4px;
+  }
+  .result-sub {
+    font-size: 12px;
+    color: var(--text-sec);
+    margin-bottom: 1rem;
+  }
+  .result-clip-note {
+    font-size: 12px;
+    padding: 7px 12px;
+    border-radius: 7px;
+    background: rgba(251,191,36,0.1);
+    border-left: 3px solid var(--warning);
+    color: #fcd34d;
+    margin-bottom: 1rem;
+  }
+  .result-corr-note {
+    font-size: 12px;
+    padding: 7px 12px;
+    border-radius: 7px;
+    background: rgba(79,195,247,0.08);
+    border-left: 3px solid var(--accent);
+    color: #90d8f5;
+    margin-bottom: 1rem;
+  }
+  .error-note {
+    font-size: 13px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: rgba(248,113,113,0.1);
+    border-left: 3px solid var(--danger);
+    color: #fca5a5;
+  }
+
+  /* calc steps table */
+  .steps-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 12px;
+  }
+  .steps-table tr { border-top: 1px solid rgba(79,195,247,0.08); }
+  .steps-table td { padding: 5px 4px; }
+  .steps-table td:first-child { color: var(--text-sec); }
+  .steps-table td:last-child  { font-family: var(--mono); color: var(--text-pri); text-align: right; }
+
+  /* ── ref formula ── */
+  .formula-box {
+    background: rgba(11,22,36,0.6);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
+  }
+  .formula-box p { font-size: 12px; color: var(--text-sec); line-height: 1.8; }
+  .formula-box code {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    background: rgba(79,195,247,0.07);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  /* ── footer ── */
+  .page-footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 3rem;
+    letter-spacing: 0.05em;
+  }
+
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-16px) } to { opacity:1; transform:none } }
+  @keyframes fadeUp   { from { opacity:0; transform:translateY(14px)  } to { opacity:1; transform:none } }
+
+  @media (max-width: 520px) {
+    .field-grid { grid-template-columns: 1fr; }
+    .result-value { font-size: 2.4rem; }
+  }
+</style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- header -->
+  <div class="page-header">
+    <div class="tag">附属書 [5-2]</div>
+    <h1>落下試験シミュレーター</h1>
+    <p>船体種別・プロフィールを入力して落下高さ H を算出します</p>
+  </div>
+
+  <!-- ①船体種類 -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-num">STEP 01</span>
+      <span class="card-title">船体種類</span>
+    </div>
+    <div class="pill-group" id="hull-group">
+      <label class="pill"><input type="radio" name="hull" value="steel" checked><span>鋼製船体</span></label>
+      <label class="pill"><input type="radio" name="hull" value="frp"><span>FRP 製</span></label>
+      <label class="pill"><input type="radio" name="hull" value="light_alloy"><span>軽合金製</span></label>
+      <label class="pill"><input type="radio" name="hull" value="pe_pp"><span>PE・PP 製</span></label>
+      <label class="pill"><input type="radio" name="hull" value="abs"><span>ABS 樹脂製</span></label>
+    </div>
+    <div class="notice info" id="hull-note"></div>
+  </div>
+
+  <!-- ②船の長さ -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-num">STEP 02</span>
+      <span class="card-title">船の長さ区分</span>
+    </div>
+    <div class="pill-group" id="length-group">
+      <label class="pill"><input type="radio" name="lr" value="under6" checked><span>6 m 未満</span></label>
+      <label class="pill"><input type="radio" name="lr" value="6to12"><span>6 m 以上 12 m 未満</span></label>
+    </div>
+    <div class="notice" id="lr-note"></div>
+  </div>
+
+  <!-- ③船舶プロフィール -->
+  <div class="card" id="profile-card">
+    <div class="card-head">
+      <span class="card-num">STEP 03</span>
+      <span class="card-title">船舶プロフィール</span>
+    </div>
+    <div class="field-grid">
+      <div class="field">
+        <label>船の長さ L</label>
+        <div class="field-wrap">
+          <input type="number" id="L" placeholder="例 4.50" step="0.01" min="0.1" max="11.99">
+          <span class="field-unit">m</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>排水量 Δ</label>
+        <div class="field-wrap">
+          <input type="number" id="delta" placeholder="例 800" step="1" min="1">
+          <span class="field-unit">kg</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>機関出力 kW</label>
+        <div class="field-wrap">
+          <input type="number" id="kw" placeholder="kW" step="0.1" min="0" oninput="syncClear('ps')">
+          <span class="field-unit">kW</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>機関出力 PS</label>
+        <div class="field-wrap">
+          <input type="number" id="ps" placeholder="PS" step="0.1" min="0" oninput="syncClear('kw')">
+          <span class="field-unit">PS</span>
+        </div>
+      </div>
+    </div>
+    <div class="formula-box" style="margin-top:1rem;">
+      <p>
+        最強速力：<code>V = 0.914√L (kW/Δ)^0.623 + 10</code><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>= 0.755√L (PS/Δ)^0.623 + 10</code><br>
+        落下高さ：<code>H = 7.475 × (V/√L + 16.142)² × L × 10⁻⁴</code>
+      </p>
+    </div>
+  </div>
+
+  <!-- 計算ボタン -->
+  <button class="btn-calc" onclick="calculate()">▶ 落下高さを計算する</button>
+
+  <!-- 結果 -->
+  <div id="result-area">
+    <div class="result-card" id="result-inner"></div>
+  </div>
+
+  <div class="page-footer">JCI 附属書 [5-2] 落下試験 ／ 長さ 12 m 未満の小型船舶の船体に適用</div>
+</div>
+
+<script>
+const hullNotes = {
+  steel:      '適用条件：V/√L ≥ 3.6 の軽構造船（長さ 6 m 未満）',
+  frp:        'FRP 製船体：V/√L < 3.6 の場合は 3.6 として計算',
+  light_alloy:'適用条件：長さ 6 m 未満の軽構造船の船体に限る',
+  pe_pp:      '適用条件：長さ 6 m 未満 ／ V/√L < 3.6 の場合は 3.6 として計算',
+  abs:        '適用条件：長さ 6 m 未満のサンドイッチ構造船体に限る'
+};
+
+function syncClear(id){ document.getElementById(id).value = ''; }
+
+function updateUI(){
+  const hull = document.querySelector('input[name="hull"]:checked').value;
+  const lr   = document.querySelector('input[name="lr"]:checked').value;
+
+  const hullNote = document.getElementById('hull-note');
+  hullNote.textContent = hullNotes[hull] || '';
+  hullNote.className = 'notice info show';
+
+  const lrNote    = document.getElementById('lr-note');
+  const profCard  = document.getElementById('profile-card');
+
+  if (lr === '6to12') {
+    profCard.style.display = 'none';
+    if (hull !== 'frp') {
+      lrNote.textContent = '6 m 以上 12 m 未満の落下試験は FRP 製船体のみ適用されます。';
+      lrNote.className = 'notice warn show';
+    } else {
+      lrNote.textContent = '落下高さは一律 2.5 m（第2項(2)）。入力不要です。';
+      lrNote.className = 'notice info show';
+    }
+  } else {
+    profCard.style.display = '';
+    lrNote.className = 'notice';
+  }
+
+  document.getElementById('result-area').classList.remove('show');
+}
+
+document.querySelectorAll('input[name="hull"], input[name="lr"]').forEach(r => r.addEventListener('change', updateUI));
+updateUI();
+
+function calculate(){
+  const hull = document.querySelector('input[name="hull"]:checked').value;
+  const lr   = document.querySelector('input[name="lr"]:checked').value;
+  const area = document.getElementById('result-area');
+  const inner= document.getElementById('result-inner');
+
+  area.classList.add('show');
+
+  if (lr === '6to12') {
+    if (hull !== 'frp') {
+      inner.innerHTML = `<div class="error-note">6 m 以上 12 m 未満の落下試験は FRP 製船体にのみ適用されます。<br>船体種類を確認してください。</div>`;
+    } else {
+      inner.innerHTML = `
+        <div class="result-label">落下高さ H（固定値）</div>
+        <div class="result-value">2.5 <span style="font-size:1.4rem;color:var(--text-sec)">m</span></div>
+        <div class="result-sub">6 m 以上 12 m 未満の FRP 製船体 — 附属書[5-2] 第2項(2)</div>`;
+    }
+    return;
+  }
+
+  const L     = parseFloat(document.getElementById('L').value);
+  const delta = parseFloat(document.getElementById('delta').value);
+  const kwv   = parseFloat(document.getElementById('kw').value);
+  const psv   = parseFloat(document.getElementById('ps').value);
+
+  if (!L || L <= 0 || L >= 12) {
+    inner.innerHTML = `<div class="error-note">船の長さ L を正しく入力してください（0 超 ～ 12 m 未満）。</div>`; return;
+  }
+  if (!delta || delta <= 0) {
+    inner.innerHTML = `<div class="error-note">排水量 Δ を入力してください。</div>`; return;
+  }
+  if (isNaN(kwv) && isNaN(psv)) {
+    inner.innerHTML = `<div class="error-note">機関出力（kW または PS）を入力してください。</div>`; return;
+  }
+
+  const sqrtL = Math.sqrt(L);
+  let V_raw;
+  let engineLabel, powerInput;
+
+  if (!isNaN(kwv) && kwv > 0) {
+    V_raw = 0.914 * sqrtL * Math.pow(kwv / delta, 0.623) + 10;
+    engineLabel = `${kwv.toFixed(1)} kW`;
+    powerInput  = `kW/Δ = ${(kwv/delta).toFixed(4)}`;
+  } else {
+    V_raw = 0.755 * sqrtL * Math.pow(psv / delta, 0.623) + 10;
+    engineLabel = `${psv.toFixed(1)} PS`;
+    powerInput  = `PS/Δ = ${(psv/delta).toFixed(4)}`;
+  }
+
+  const VsqrtL_raw = V_raw / sqrtL;
+  let VsqrtL_use = VsqrtL_raw;
+  let corrNote = '';
+
+  if ((hull === 'frp' || hull === 'pe_pp') && VsqrtL_raw < 3.6) {
+    VsqrtL_use = 3.6;
+    corrNote = `V/√L = ${VsqrtL_raw.toFixed(3)} < 3.6 のため、V/√L = 3.6 として計算（${hull === 'frp' ? 'FRP' : 'PE・PP'} 製船体規定）`;
+  }
+
+  if (hull === 'steel' && VsqrtL_raw < 3.6) {
+    inner.innerHTML = `<div class="error-note">鋼製船体の適用条件 V/√L ≥ 3.6 を満たしません。<br>計算値 V/√L = ${VsqrtL_raw.toFixed(3)}（L=${L} m, 出力=${engineLabel}）</div>`;
+    return;
+  }
+
+  const V_use = VsqrtL_use * sqrtL;
+  const inner_val = VsqrtL_use + 16.142;
+  const H_calc = 7.475 * inner_val * inner_val * L * 1e-4;
+
+  let H_final = H_calc;
+  let clipNote = '';
+  if (H_calc > 2.5) { H_final = 2.5; clipNote = '計算値 ' + H_calc.toFixed(4) + ' m が 2.5 m を超えるため、落下高さは 2.5 m とする。'; }
+  else if (H_calc < 0.7) { H_final = 0.7; clipNote = '計算値 ' + H_calc.toFixed(4) + ' m が 0.7 m 未満のため、落下高さは 0.7 m とする。'; }
+
+  inner.innerHTML = `
+    <div class="result-label">落下高さ H</div>
+    <div class="result-value">${H_final.toFixed(2)} <span style="font-size:1.4rem;color:var(--text-sec)">m</span></div>
+    <div class="result-sub">附属書[5-2] 第2項(1) — 計算落下高さ</div>
+    ${clipNote ? `<div class="result-clip-note">${clipNote}</div>` : ''}
+    ${corrNote ? `<div class="result-corr-note">${corrNote}</div>` : ''}
+    <table class="steps-table">
+      <tr><td>√L</td><td>${sqrtL.toFixed(4)} m^0.5</td></tr>
+      <tr><td>${powerInput}</td><td></td></tr>
+      <tr><td>最強速力 V（計算値）</td><td>${V_raw.toFixed(3)} kt</td></tr>
+      <tr><td>V/√L（使用値）</td><td>${VsqrtL_use.toFixed(4)}</td></tr>
+      <tr><td>V/√L + 16.142</td><td>${inner_val.toFixed(4)}</td></tr>
+      <tr><td>H（計算値）</td><td>${H_calc.toFixed(5)} m</td></tr>
+      <tr><td style="color:var(--accent);font-weight:500">H（採用値）</td><td style="color:var(--accent);font-weight:500">${H_final.toFixed(2)} m</td></tr>
+    </table>`;
+}
+</script>
+</body>
+</html>
